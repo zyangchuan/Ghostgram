@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    container_name: api
+    image: api:latest
+    ports:
+      - "5001:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - /node_modules
+    command: ["npm", "run", "dev"]
+    restart: unless-stopped
