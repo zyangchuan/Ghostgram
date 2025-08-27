@@ -8,7 +8,7 @@ export function App() {
 
   return (
     <view>
-      <view className="bg-neutral-50 flex flex-col justify-center items-center min-h-screen text-center p-10">
+      <view className="bg-neutral-100 flex flex-col justify-center items-center min-h-screen text-center p-10">
         <view className='flex flex-col justify-center items-center gap-2'>
           <text style='font-size: 160px;'>👻</text>
           <text className='font-roboto font-bold text-6xl'>
