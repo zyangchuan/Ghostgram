@@ -1,5 +1,5 @@
 # To run this code you need to install the following dependencies:
-# pip install google-genai fastapi uvicorn python-multipart Pillow langchain-core langchain-ollama
+# pip install google-genai fastapi uvicorn python-multipart Pillow
 
 import base64
 import os
@@ -14,8 +14,6 @@ from PIL import Image, ImageDraw
 # Import the google.generativeai library and its types module
 from google import genai
 from google.genai import types
-from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
 
 # The google-genai library automatically looks for GOOGLE_API_KEY/GEMINI_API_KEY in your environment variables.
 # Before running, ensure you have set the API key in your terminal:
@@ -40,17 +38,15 @@ DEFAULT_PRIVACY_PROMPT = """
 You are a privacy auditor for images.
 Scan the uploaded photo carefully and identify any regions that may compromise the user's privacy or safety.
 For EACH sensitive element found, return:
-- "type": A label like "face", "license_plate", "house_number", "text", "credit_card", etc.
+- "type": A label like "face", "license_plate", "house_number", "text", "credit_card", etc. be more sensitive to faces, make sure they are flagged
 - "reason": A short explanation of why it may be sensitive.
 - "box": Approximate bounding box in pixel coordinates [x_min, y_min, x_max, y_max].
 Important rules:
 - Return ONLY valid JSON.
 - Do not include explanations outside of JSON.
 - If no sensitive elements are found, return: { "sensitive_regions": [] }
+Do not use markdown code fences or backticks; return raw JSON only
 """.strip()
-
-# Initialize the VLM once
-vlm = ChatOllama(model="qwen2.5vl:latest", temperature=0)
 
 # ----- Routes -----
 @app.get("/")
@@ -63,31 +59,53 @@ async def vl_privacy_audit(
     text: Optional[str] = Form(None, description="Optional prompt override/append")
 ) -> JSONResponse:
     """
-    Accepts multipart/form-data to audit images for sensitive content.
+    Accepts multipart/form-data to audit images for sensitive content using Gemini 2.5 Flash.
     """
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY or GOOGLE_API_KEY is not set in environment variables.")
+
+    try:
+        client = genai.Client(api_key=api_key)
+        model = "gemini-2.5-flash" 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize Gemini client: {str(e)}")
+
     results: Dict[str, Any] = {}
     prompt_text = DEFAULT_PRIVACY_PROMPT if not text else f"{DEFAULT_PRIVACY_PROMPT}\n\n{text}"
 
     for f in files:
         name = f.filename or "uploaded_image"
         try:
-            raw = await f.read()
-            img_b64 = file_to_base64_jpeg(raw)
+            raw_image_bytes = await f.read()
 
-            image_part = {"type": "image_url", "image_url": f"data:image/jpeg;base64,{img_b64}"}
-            text_part = {"type": "text", "text": prompt_text}
-            messages = [HumanMessage(content=[image_part, text_part])]
+            # Prepare the content for the Gemini API
+            content = types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(text=prompt_text),
+                    types.Part.from_bytes(
+                        mime_type=f.content_type,
+                        data=raw_image_bytes
+                    )
+                ]
+            )
 
-            response = vlm.invoke(messages)
+            # Generate content using a non-streaming call to get the full response
+            response = client.models.generate_content(
+                model=model,
+                contents=[content]
+            )
 
             try:
-                parsed_content = json.loads(response.content)
+                # The response is expected to be a JSON string
+                parsed_content = json.loads(response.text)
                 results[name] = {"ok": True, "data": parsed_content}
             except json.JSONDecodeError:
                  results[name] = {
                     "ok": False,
                     "error": "Failed to parse JSON from the model's response.",
-                    "raw": response.content
+                    "raw": response.text
                 }
         except Exception as e:
             results[name] = {"ok": False, "error": str(e)}
@@ -123,12 +141,12 @@ async def vl_edit_flash(
         if not regions_list:
             return StreamingResponse(BytesIO(image_bytes), media_type=file.content_type)
 
-        mask = Image.new("L", original_image.size, 0)  
+        mask = Image.new("L", original_image.size, 0)
         drawer = ImageDraw.Draw(mask)
         for region in regions_list:
             box = region.get("box")
             if box and len(box) == 4:
-                drawer.rectangle(box, fill=255) 
+                drawer.rectangle(box, fill=255)
 
         client = genai.Client(api_key=api_key)
         model = "gemini-2.5-flash-image-preview"
@@ -154,7 +172,7 @@ async def vl_edit_flash(
                 ]
             )
         ]
-        
+
         generate_content_config = types.GenerateContentConfig(
             response_modalities=["IMAGE", "TEXT"],
         )
