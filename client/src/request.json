@@ -1,0 +1,29 @@
+{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "inlineData": {
+              "mimeType": "image/jpeg",
+              "data": ""
+            }
+          },
+          {
+            "text": "You are a privacy auditor for images.\nScan the uploaded photo carefully and identify any regions that may compromise the user's privacy or safety.\nFor EACH sensitive element found, return:\n- \"type\": A label like \"face\", \"license_plate\", \"house_number\", \"text\", \"credit_card\", etc. be more sensitive to faces, make sure they are flagged\n- \"reason\": A short explanation of why it may be sensitive.\n- \"box\": Approximate bounding box in pixel coordinates [x_min, y_min, x_max, y_max].\nImportant rules:\n- Return ONLY valid JSON.\n- Do not include explanations outside of JSON.\n- If no sensitive elements are found, return: { \"sensitive_regions\": [] }\nDo not use markdown code fences or backticks; return raw JSON only"
+          }
+        ]
+      }
+    ],
+    "generationConfig": {
+      "thinkingConfig": {
+        "thinkingBudget": -1
+      }
+    },
+    "tools": [
+      {
+        "googleSearch": {
+        }
+      }
+    ]
+}

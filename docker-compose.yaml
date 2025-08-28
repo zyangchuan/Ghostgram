@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  ghostify:
+    build: ./backend
+    container_name: ghostify
+    ports:
+      - "8000:8000"
+    environment:
+      # Replace with your actual API keys
+      GOOGLE_API_KEY: "AIzaSyDp5uBo3hJlMdMYJgEF4kOZGy-P159WIvU"
+      GEMINI_API_KEY: "AIzaSyDp5uBo3hJlMdMYJgEF4kOZGy-P159WIvU"
+    volumes:
+      - ./backend:/app  # Mount current directory for live code changes (optional)
+    restart: unless-stopped
