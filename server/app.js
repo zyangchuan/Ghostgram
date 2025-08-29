@@ -4,6 +4,8 @@ const { StatusCodes } = require("http-status-codes");
 const { v4: uuidv4 } = require('uuid');
 const AWS = require('aws-sdk');
 const axios = require('axios');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config()
 
 // Configure AWS with your access key and secret key (or use IAM roles)
 // It is recommended to use IAM roles for production environments
@@ -62,8 +64,16 @@ const uploadRawBase64ToS3 = async (base64Data, mimeType) => {
     return `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
 };
 
+// Rate limiter for the /redact-image endpoint
+const redactImageLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 3, // Limit each IP to 3 requests per windowMs
+    message: "Too many requests from this IP, please try again after a minute",
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
-app.post('/redact-image', async (req, res) => {
+app.post('/redact-image', redactImageLimiter, async (req, res) => {
     // Expects a raw base64 string in `image`, and a JSON object for `sensitive_regions`
     const { image, sensitive_regions } = req.body;
 
@@ -76,7 +86,7 @@ app.post('/redact-image', async (req, res) => {
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    const MODEL_ID = "gemini-1.5-flash"; // Using a recommended model for this task
+    const MODEL_ID = "gemini-2.5-flash-image-preview"; // Using a recommended model for this task
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${GEMINI_API_KEY}`;
 
     const requestPayload = {
@@ -96,9 +106,6 @@ app.post('/redact-image', async (req, res) => {
             ]
           },
         ],
-        "generationConfig": {
-          "responseMimeType": "image/jpeg",
-        },
     };
 
     try {
@@ -108,7 +115,7 @@ app.post('/redact-image', async (req, res) => {
 
         // Extract the raw base64 image data from the Gemini API response
         const redactedImagePart = geminiResponse.data.candidates[0]?.content?.parts?.find(p => p.inlineData);
-        
+
         if (!redactedImagePart || !redactedImagePart.inlineData.data) {
             throw new Error("No image data found in the Gemini API response.");
         }
@@ -133,7 +140,7 @@ app.post('/redact-image', async (req, res) => {
 
 app.post('/upload-image', async (req, res) => {
   // This endpoint still expects the base64 string with the data URI prefix
-  const { image } = req.body; 
+  const { image } = req.body;
 
   if (!image) {
     return res.status(StatusCodes.BAD_REQUEST).json({ message: 'No image data provided.' });
@@ -179,7 +186,7 @@ app.use("/", (req, res) => {
   res.status(StatusCodes.OK).json({ msg: "Server is running." });
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
