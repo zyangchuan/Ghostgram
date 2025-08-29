@@ -5,6 +5,7 @@ import { App } from './App.jsx';
 import Layout from './components/Layout.jsx';
 import Home from './screens/Home.jsx';
 import Post from './screens/Post.jsx';
+import Description from './screens/Description.jsx';
 
 root.render(
   <MemoryRouter>
@@ -12,8 +13,9 @@ root.render(
       <Route path="/" element={<App />} />
       <Route path="/home" element={<Layout><Home /></Layout>} />
       <Route path="/post" element={<Layout><Post /></Layout>} />
+      <Route path="/post/description" element={<Layout><Description /></Layout>} />
     </Routes>
-  </MemoryRouter>,
+  </MemoryRouter>
 );
 
 if (import.meta.webpackHot) {

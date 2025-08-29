@@ -2,45 +2,35 @@
  "sensitive_regions": [
   {
    "type": "face",
+   "tag": "woman-white-top-face",
    "reason": "Identifiable human face.",
-   "x": 317,
-   "y": 432
+   "area": "lower-left, woman in white top and long skirt"
   },
   {
    "type": "face",
+   "tag": "woman-blue-top-face",
    "reason": "Identifiable human face.",
-   "x": 436,
-   "y": 312
+   "area": "lower-right, woman in light blue top and black skirt"
   },
   {
    "type": "face",
+   "tag": "woman-floral-dress-face",
    "reason": "Identifiable human face.",
-   "x": 605,
-   "y": 332
+   "area": "far-left, woman in floral dress with brown bag"
   },
   {
    "type": "street_sign",
+   "subtype": "street_name",
+   "tag": "haji-lane-sign",
    "reason": "Street name reveals location.",
-   "x": 297,
-   "y": 151
-  },
-  {
-   "type": "street_sign",
-   "reason": "Traffic sign reveals location.",
-   "x": 571,
-   "y": 342
+   "area": "upper-left, green sign 'Haji Lane'"
   },
   {
    "type": "text",
-   "reason": "Traffic rules specify location and time.",
-   "x": 673,
-   "y": 225
-  },
-  {
-   "type": "text",
-   "reason": "Shop names reveal specific location.",
-   "x": 791,
-   "y": 651
+   "subtype": "shop_name",
+   "tag": "golden-landmarks-sign",
+   "reason": "Building name could reveal specific location beyond street.",
+   "area": "upper-right, text 'GOLDEN LANDMARKS' on the building"
   }
  ]
 }
