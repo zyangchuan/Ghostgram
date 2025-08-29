@@ -10,12 +10,13 @@
             }
           },
           {
-            "text": "You are a privacy auditor for images.\nScan the uploaded photo carefully and identify any regions that may compromise the user's privacy or safety.\nFor EACH sensitive element found, return:\n- \"type\": A label like \"face\", \"license_plate\", \"house_number\", \"text\", \"credit_card\", etc. be more sensitive to faces, make sure they are flagged\n- \"reason\": A short explanation of why it may be sensitive.\n- \"box\": Approximate bounding box in pixel coordinates [x_min, y_min, x_max, y_max].\nImportant rules:\n- Return ONLY valid JSON.\n- Do not include explanations outside of JSON.\n- If no sensitive elements are found, return: { \"sensitive_regions\": [] }\nDo not use markdown code fences or backticks; return raw JSON only"
+            "text": "You are a privacy auditor for images.Scan the image carefully and identify any regions that may compromise the user's privacy or safety — anything that could reveal personal identity, contact/location details, or sensitive credentials. Be conservative in detection.Prioritize faces: every visible human face must be flagged.Output requirements:Return ONLY valid JSON (UTF-8, no comments, no trailing commas).Do not include any text outside the JSON.If nothing is sensitive, return exactly: { sensitive_regions: [] }For EACH sensitive element found, return an object with:type: one of [face,license_plate,house_number,street_sign,text,credit_card,id_card,document,screen,tattoo,logo,landmark,badge,mail_label,name_tag](Choose the closest label; prefer specificity like credit_card over document when applicable.)reason: a short explanation (max ~15 words).x: integer pixel x of the element’s center (origin at top-left of the ORIGINAL image).y: integer pixel y of the element’s center (origin at top-left of the ORIGINAL image).Additional rules:Use coordinates in the original image’s pixel space (not normalized).Round x and y to the nearest integer.For overlapping detections of the same item, return a single entry (pick the best center).Only flag text if it is readable or likely reveals identity/location (e.g., full names, addresses, school names, SSIDs).Flag landmarks only if uniquely identifiable (e.g., a famous skyline/monument).Always flag every distinct human face, even if partially occluded.JSON schema:{sensitive_regions: [{type: string,reason: string,x: 123,y: 456}]}If no sensitive elements are found:{ sensitive_regions: [] }Example output:{sensitive_regions: [{ type: face, reason: Identifiable human face, x: 548, y: 322 },{ type: license_plate, reason: Readable vehicle number, x: 1016, y: 742 },{ type: text, reason: Street name reveals location, x: 380, y: 210 }]}"
           }
         ]
       }
     ],
     "generationConfig": {
+      "temperature": 1.25,
       "thinkingConfig": {
         "thinkingBudget": -1
       }

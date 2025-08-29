@@ -1,61 +1,81 @@
 import arrowLeft from "../assets/arrow-left.png";
-import Button from '../components/Button'
+import Button from "../components/Button"
 import { useState, useEffect } from "@lynx-js/react"
 import { useNavigate } from 'react-router';
-import { useParams } from 'react-router';
-import image0 from "../assets/my_photos/image0.jpg"
-import image1 from "../assets/my_photos/image1.jpeg"
-import image2 from "../assets/my_photos/image2.jpeg"
-import image3 from "../assets/my_photos/image3.jpg"
-import image4 from "../assets/my_photos/image4.jpg"
-import image5 from "../assets/my_photos/image5.webp"
-
-import { FormData, File, Blob } from "formdata-polyfill/esm-min";
-globalThis.FormData = FormData;
+import request from "../request.json"
+import { useImageStore } from "../store/imageStore";
+import LoaderCircle from "../assets/loader-circle.png"
 
 export default function Post() {
-  
-  const [image, setImage] = useState(null)
-  const { id } = useParams()
-  const images = [
-      { id: 0, image: image0},
-      { id: 1, image: image1},
-      { id: 2, image: image2},
-      { id: 3, image: image3},
-      { id: 4, image: image4},
-      { id: 5, image: image5},
-    ]
+  const { savedImage, setSavedImage } = useImageStore()
+  const [imageUrl, setImageUrl] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  const ghostifyImage = async (image) => {
-      const formdata = new FormData()
-      formdata.append("files", image, "Haji lane 🇸🇬.jpg")
+  const imageBase64 = "data:image/jpeg;base64," + savedImage
 
+  const ghostifyImage = async () => {
+      request.contents[0].parts[0].inlineData.data = savedImage
+      console.log(JSON.stringify(request))
       const requestOptions = {
         method: "POST",
-        body: { files: image },
-        redirect: "follow"
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
       };
 
-      fetch("http://0.0.0.0:8000/vl/audit", requestOptions)
-        .then((response) => response.text())
-        .then((result) => console.log(result))
-        .catch((error) => console.error(error));
+      try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDp5uBo3hJlMdMYJgEF4kOZGy-P159WIvU" ,requestOptions)
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${response.message || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        console.log(data)
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error
+      }
+
+      
+  };
+
+  const uploadImage = async () => {
+    try {
+      const response = await fetch("http://ec2-13-215-248-76.ap-southeast-1.compute.amazonaws.com:5001/upload-image", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          image: imageBase64
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      setImageUrl(data.imageUrl)
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error
+    }
   };
 
 
   useEffect(async () => {
     try {  
-      images.forEach(element => {
-        if (element.id == id) {
-          setImage(element.image)
-        }
-      });
-
-      await ghostifyImage(image)
+      await ghostifyImage()
+      await uploadImage()
+      setLoading(false)
     } catch (error) {
       console.log(error)
     }
-  })
+  }, [])
   
   const nav = useNavigate()
 
@@ -67,8 +87,13 @@ export default function Post() {
       <text className="font-bold text-4xl text-center">Ghostify</text>
       <view className="w-full h-full mt-5 flex flex-col items-center">
         <view>
-          <image src={image} auto-size mode="aspectFill" className="w-96 rounded-xl" />
-          <text className="text-2xl text-center font-bold text-neutral-400 mt-5 ">
+          {loading 
+          ? (<view className="w-96 h-96 bg-neutral-300 rounded-xl flex justify-center items-center">
+              <image src={LoaderCircle} auto-size className="w-20 animate-spin" tint-color="#a3a3a3" />
+            </view>)
+          : <image src={imageUrl} mode="aspectFill" auto-size className="w-96 rounded-xl" />}
+
+          <text className="text-2xl text-center font-bold text-neutral-300 mt-5">
             Tap on the ghosts to select the information you want to hide from strangers only
           </text>
         </view>

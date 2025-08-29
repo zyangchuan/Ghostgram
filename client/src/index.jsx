@@ -11,7 +11,7 @@ root.render(
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/home" element={<Layout><Home /></Layout>} />
-      <Route path="/post/:id" element={<Layout><Post /></Layout>} />
+      <Route path="/post" element={<Layout><Post /></Layout>} />
     </Routes>
   </MemoryRouter>,
 );

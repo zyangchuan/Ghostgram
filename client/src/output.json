@@ -1,0 +1,46 @@
+{
+ "sensitive_regions": [
+  {
+   "type": "face",
+   "reason": "Identifiable human face.",
+   "x": 317,
+   "y": 432
+  },
+  {
+   "type": "face",
+   "reason": "Identifiable human face.",
+   "x": 436,
+   "y": 312
+  },
+  {
+   "type": "face",
+   "reason": "Identifiable human face.",
+   "x": 605,
+   "y": 332
+  },
+  {
+   "type": "street_sign",
+   "reason": "Street name reveals location.",
+   "x": 297,
+   "y": 151
+  },
+  {
+   "type": "street_sign",
+   "reason": "Traffic sign reveals location.",
+   "x": 571,
+   "y": 342
+  },
+  {
+   "type": "text",
+   "reason": "Traffic rules specify location and time.",
+   "x": 673,
+   "y": 225
+  },
+  {
+   "type": "text",
+   "reason": "Shop names reveal specific location.",
+   "x": 791,
+   "y": 651
+  }
+ ]
+}
