@@ -50,17 +50,11 @@ export default function Post() {
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.message || 'Unknown error'}`);
-      }
-
       const data = await response.json();
       setSavedImageUrl(data.imageUrl)
       
     } catch (error) {
       console.error('Error uploading image:', error);
-      throw error
     }
   };
 
