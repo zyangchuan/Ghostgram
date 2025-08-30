@@ -4,10 +4,10 @@ import LoaderCircle from "../assets/loader-circle.png"
 import { useState } from "@lynx-js/react";
 import { useImageStore } from "../store/imageStore";
 import { useRegionStore } from "../store/regionStore";
-import output from "../output.json"
+import { SERVER_BASE_URL } from "../config"
 
 export default function Layout({ region }) {
-  const { savedImage, savedImageUrl, redactedImageUrl, setRedactedImageUrl } = useImageStore()
+  const { savedImage, setRedactedImageUrl } = useImageStore()
   const { regions, addRegion, removeRegion } = useRegionStore()
   const [loading, setLoading] = useState(false)
 
@@ -22,7 +22,7 @@ export default function Layout({ region }) {
     };
 
     try {
-      const response = await fetch("http://ec2-13-215-248-76.ap-southeast-1.compute.amazonaws.com:5001/redact-image", requestOptions)
+      const response = await fetch(SERVER_BASE_URL + "/redact-image", requestOptions)
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}, Message: ${response.message || 'Unknown error'}`);
@@ -56,7 +56,10 @@ export default function Layout({ region }) {
 
   return (
     <view className="mb-3 w-full h-20 p-2 flex justify-between items-center rounded-xl shadow-md border-2 border-neutral-200">
-      <text className="w-full font-semibold text-lg">{region.tag}</text>
+      <view className="w-full">
+        <text className="w-full font-semibold text-lg">{region.tag}</text>
+        <text className="w-full font-semibold text-md text-red-400">{region.reason}</text>
+      </view>
       
       {!regions.includes(region)
         ? (<view bindtap={() => handleHideRegion(region)} className="w-44 p-2 flex justify-center items-center bg-blue-100 rounded-lg">
@@ -75,10 +78,6 @@ export default function Layout({ region }) {
                   <text className="text-lg text-red-400 font-semibold">Hide</text>
                 </view>)}
           </view>)
-        // (<view bindtap={() => handleHideRegion(region)} className="w-44 p-2 flex justify-center items-center gap-2 bg-red-100 rounded-lg">
-        //     <image src={eyeClosed} className="w-7 h-7" tint-color="#f87171" />
-        //     <text className="text-lg text-red-400 font-semibold">Unhide</text>
-        //   </view>)
       }
     </view>
   )

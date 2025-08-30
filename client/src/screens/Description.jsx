@@ -3,26 +3,34 @@ import Button from "../components/Button"
 import { useImageStore } from "../store/imageStore"
 import { usePostStore } from '../store/postStore';
 import arrowLeft from "../assets/arrow-left.png";
-import SampleImage from "../assets/sample.jpg"
+import loadingCircle from "../assets/loader-circle.png"
 import { useState } from "@lynx-js/react";
-import descriptionRequest from "../descriptionRequeset.json"
+import descriptionRequest from "../descriptionRequest.json"
 import { useEffect } from 'react';
+import { useRegionStore } from '../store/regionStore';
+import { GEMINI_API_KEY } from "../config"
 
 export default function App() {
-  const { savedImageUrl } = useImageStore()
+  const { savedImageUrl, redactedImageUrl } = useImageStore()
+  const { regions, setRegions } = useRegionStore()
   const { addPost } = usePostStore()
+  const [loading, setLoading] = useState(false)
+  
   const nav = useNavigate();
 
   const [inputContent, setInputContent] = useState("");
-  const [words, setWords] = useState([]);
+  const [output, setOutput] = useState({});
+  const [showSuggestion, setShowSuggestion] = useState(true)
 
   const handleAddPost = () => {
-    addPost({ userName: "Han Sheng", imageUrl: savedImageUrl, description: inputContent })
+    addPost({ userName: "Yangchuan", relationship: "", imageUrl: regions.length ? redactedImageUrl : savedImageUrl, description: inputContent })
+    setRegions([])
     nav('/home')
   }
 
   function useDebounce(callback, delay, deps) {
     useEffect(() => {
+      setLoading(true)
       const handler = setTimeout(() => {
         callback()
       }, delay)
@@ -34,35 +42,38 @@ export default function App() {
   }
 
   useDebounce(async () => {
-    const regions = await handleTextRedaction()
-    
-    let words = []
-    if (regions.length) {
-      regions.forEach(region => words.push(region.text))
-    }
-    setWords(words)
-    console.log(words)
-    
+    await handleTextRedaction()
   }, 2000, [inputContent])
 
   const handleTextRedaction = async () => {
-    descriptionRequest.contents[0].parts[0].text += inputContent
-    const request = JSON.stringify(descriptionRequest)
-      
-    const requestOptions = {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: request,
-      redirect: "follow"
-    };
-    try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDp5uBo3hJlMdMYJgEF4kOZGy-P159WIvU", requestOptions)
-      const data = await response.json();
-      const res = data.candidates[0].content.parts[0].text.replace(/```json\s*|\s*```/g, "");
-      return res
-    } catch (error) {
-      console.error('Error uploading image:', error);
+    if (inputContent.length) {
+      descriptionRequest.contents[0].parts[0].text += inputContent
+      const request = JSON.stringify(descriptionRequest)
+        
+      const requestOptions = {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: request,
+        redirect: "follow"
+      };
+      try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY, requestOptions)
+        const data = await response.json();
+        const res = data.candidates[0].content.parts[0].text.replace(/```json\s*|\s*```/g, "");
+        
+        setOutput(JSON.parse(res))
+        setLoading(false)
+      } catch (error) {
+        console.error('Error uploading image:', error);
+      }
+    } else {
+      setLoading(false)
     }
+  }
+
+  const replaceDescription = () => {
+    setInputContent(output.safe_text)
+    setShowSuggestion(false)
   }
   
   return (
@@ -73,15 +84,38 @@ export default function App() {
       <text className="h-12 font-bold text-4xl text-center">Write a description</text>
       
       <view className="w-full pb-10 flex-1 flex flex-col items-center">
-        <view className='w-full flex-1 flex flex-col'>
-          <image src={SampleImage} mode="aspectFill" className="w-96 h-96 rounded-xl" />
-          <view className="flex flex-col w-full h-32 px-2 mt-5 border-2">
-            <textarea bindinput={(res) => {
-                setInputContent(res.detail.value);
-              }} placeholder="Write your description here..." className="flex-1 text-xl h-full font-bold" />
+        <view className='w-full flex-1 flex flex-col items-center'>
+          <image src={regions.length ? redactedImageUrl: savedImageUrl} mode="aspectFill" className="w-96 h-96 rounded-xl" />
+          <view className="flex flex-col w-full h-32 px-2 mt-5">
+            {showSuggestion
+              ? (<textarea bindinput={(res) => {
+                  setInputContent(res.detail.value);
+                }} placeholder="Write your description here..." className="flex-1 text-xl h-full font-semibold" />)
+              : (<view className='flex-1 text-xl h-full'>
+                  <text className='flex-1 text-xl h-full font-semibold'>{inputContent}</text>
+                </view>)
+            }
+            
           </view>
-          <view className='flex-1 w-full border-2'>
-            <text className='font-bold text-red-300'>{res}</text>
+          <view className='flex-1 flex flex-col w-full'>
+            {inputContent.length && showSuggestion
+              ? (<view className='p-2 border-neutral-200 border-2 shaodw-xl rounded-xl flex flex-col'>
+                  <view className='w-full flex justify-between'>
+                    <text className='font-bold'>Suggested description</text>
+                    <text className='font-bold text-neutral-400 text-sm'>Tap to replace</text>
+                  </view>
+                  {loading 
+                    ? (<view className='w-full flex justify-center'>
+                        <image src={loadingCircle} className='w-16 h-16 mt-5 animate-spin' tint-color="#d4d4d4" />
+                      </view>)
+                    : (<view bindtap={() => replaceDescription()} className='bg-red-200 rounded-lg p-2 mt-2'>
+                        <text className='font-semibold text-red-500'>{output.safe_text}</text>
+                      </view>)
+                  }
+                </view>) 
+              : null
+            }
+            
           </view>
         </view>
 
@@ -92,3 +126,19 @@ export default function App() {
     </view>
   )
 }
+
+// {
+//   "safe_text": "Today I went shopping downtown and in a nearby vibrant area.",
+//   "sensitive_regions": [
+//     {
+//       "type": "location",
+//       "reason": "Specific shopping area identified by name.",
+//       "text": "bugis"
+//     },
+//     {
+//       "type": "location",
+//       "reason": "Specific shopping area identified by name.",
+//       "text": "haji lane"
+//     }
+//   ]
+// }

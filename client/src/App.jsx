@@ -15,8 +15,8 @@ export function App() {
           <text className='font-roboto font-bold text-6xl'>
             Ghostgram
           </text>
-          <text className='mb-36 font-semibold text-neutral-400 text-2xl'>Post your moments without a trace</text>
-          <Button onClick={() => nav('/home')}>Sign in with Google</Button>
+          <text className='mb-36 font-semibold text-neutral-400 text-2xl text-center'>Post your moments without a trace</text>
+          <Button onClick={() => nav('/home')}>Sign in</Button>
         </view>
       </view>
     </view>

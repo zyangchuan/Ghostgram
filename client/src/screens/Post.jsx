@@ -6,9 +6,12 @@ import request from "../request.json"
 import { useImageStore } from "../store/imageStore";
 import LoaderCircle from "../assets/loader-circle.png"
 import GhostifyImage from "../components/GhostifyImage";
+import { useRegionStore } from "../store/regionStore";
+import { SERVER_BASE_URL, GEMINI_API_KEY } from "../config"
 
 export default function Post() {
   const { savedImage, setSavedImage, savedImageUrl, setSavedImageUrl } = useImageStore()
+  const { options, setOptions } = useRegionStore()
   const [loading, setLoading] = useState(true)
 
   const imageBase64 = "data:image/jpeg;base64," + savedImage
@@ -25,13 +28,14 @@ export default function Post() {
     };
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDp5uBo3hJlMdMYJgEF4kOZGy-P159WIvU" ,requestOptions)
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY ,requestOptions)
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}, Message: ${response.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      console.log(data)
+      setOptions(JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json\s*|\s*```/g, "")).sensitive_regions)
+      console.log(options)
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error
@@ -40,7 +44,7 @@ export default function Post() {
 
   const uploadImage = async () => {
     try {
-      const response = await fetch("http://ec2-13-215-248-76.ap-southeast-1.compute.amazonaws.com:5001/upload-image", {
+      const response = await fetch(SERVER_BASE_URL + "/upload-image", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,8 +65,8 @@ export default function Post() {
 
   useEffect(async () => {
     try {  
-      // await ghostifyImage()
-      // await uploadImage()
+      await ghostifyImage()
+      await uploadImage()
       setLoading(false)
     } catch (error) {
       console.log(error)
